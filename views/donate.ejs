@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="bower_components/jquery/dist/jquery.min.js"></script>">
+    <script>
+        var socket = io.connect('http://192.168.0.100:3000');
+        socket.on('news', function (data) {
+            console.log(data);
+            socket.emit('my other event', { my: 'data' });
+        });
+
+        $(function() { //shorthand document.ready function
+            $('#donationForm').on('submit', function(e) { //use on if jQuery 1.7+
+                e.preventDefault();  //prevent form from submitting
+                var name = $("#name").val();
+                var amount = parseInt($("#amount").val());
+                var roll = $("#roll").val();
+                var receipt = $("#receipt").val();
+
+                var data = {
+                    name: name,
+                    amount: amount,
+                    roll: roll,
+                    receipt: receipt
+                };
+
+                socket.emit('donate', data);
+                $("#fullname").val("");
+                $("#amount").val("")
+                alert( "Thank You!");
+
+            });
+        });
+    </script>
+</head>
+<body>
+
+<form id="donationForm">
+
+    Name:<br>
+    <input type="text" id="name"><br><br>
+    Amount:<br>
+    <input type="number" id="amount"><br><br>
+    Roll Number:<br>
+    <input type="number" id="roll"><br><br>
+    Receipt Number:<br>
+    <input type="number" id="receipt"><br><br>
+    <input type="submit" value="Submit">
+
+</form>
+
+</body>
+</html>

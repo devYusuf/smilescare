@@ -1,0 +1,124 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('smilescare:server');
+var http = require('http');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort('4000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+var io = require('socket.io')(server);
+var mongoose = require('mongoose');
+mongoose.Promise = require('bluebird');
+mongoose.connect('mongodb://localhost/smilecare');
+
+var Donation = mongoose.model('Donation', { name: String,
+                                            amount: Number,
+                                            roll: Number,
+                                            reciept: Number});
+
+io.on('connection', function (socket) {
+
+       socket.on('donate', function(sdata){
+        console.log(sdata);
+        //save it on database
+        var newDonation = new Donation(sdata);
+        newDonation.save(function(err){
+            if(err) throw err;
+        });
+        var curTotal = 0;
+         Donation.findOne({name: "total"}, function(err, data){
+            curTotal = parseInt(data.amount);
+             curTotal = parseInt(curTotal) +  parseInt(sdata.amount);
+             Donation.findOneAndUpdate({name: "total"}, {$set:{amount: curTotal}}, {upsert: true}, function(err, doc) {
+                 if (err) {
+                     console.log("Something wrong when updating data!");
+                 }
+                 sdata.total = curTotal;
+                 socket.broadcast.emit('update', sdata);
+             });
+
+        });
+    })
+});
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
