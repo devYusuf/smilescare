@@ -134,7 +134,7 @@ $(document).ready(function() {
     $(window).resize();
 	var total = 0;
 	var names = [];
-    var socket = io.connect('http://localhost:3000');
+    var socket = io.connect('http://localhost:4000');
     socket.on('update', function (data) {
         console.log(data);
         names.push(data.name);

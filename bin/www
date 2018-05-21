@@ -23,7 +23,7 @@ var server = http.createServer(app);
 var io = require('socket.io')(server);
 var mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
-mongoose.connect('mongodb://localhost/smilecare');
+mongoose.connect('mongodb://localhost:27017/smilecare');
 
 var Donation = mongoose.model('Donation', { name: String,
                                             amount: Number,
@@ -36,21 +36,22 @@ io.on('connection', function (socket) {
         console.log(sdata);
         //save it on database
         var newDonation = new Donation(sdata);
-        newDonation.save(function(err){
+        newDonation.save(function(err, savedDoc){
             if(err) throw err;
-        });
-        var curTotal = 0;
-         Donation.findOne({name: "total"}, function(err, data){
+          var curTotal = 0;
+          Donation.findOne({ name: "total" }, function (err, data) {
             curTotal = parseInt(data.amount);
-             curTotal = parseInt(curTotal) +  parseInt(sdata.amount);
-             Donation.findOneAndUpdate({name: "total"}, {$set:{amount: curTotal}}, {upsert: true}, function(err, doc) {
-                 if (err) {
-                     console.log("Something wrong when updating data!");
-                 }
-                 sdata.total = curTotal;
-                 socket.broadcast.emit('update', sdata);
-             });
+            curTotal = parseInt(curTotal) + parseInt(sdata.amount);
+            Donation.findOneAndUpdate({ name: "total" }, { $set: { amount: curTotal } }, { upsert: true }, function (err, doc) {
+              if (err) {
+                console.log("Something wrong when updating data!");
+              }
+              sdata.total = curTotal;
+              console.log(sdata);
+              socket.broadcast.emit('update', sdata);
+            });
 
+          });
         });
     })
 });
